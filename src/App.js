@@ -38,42 +38,95 @@ class App extends React.Component {
                 'Content-Type': 'application/json'
             }
         };
-        let cvAnalyzeResponse = await http.post(
-            process.env.REACT_APP_API_ENDPOINT,
+
+        // first let's analyze any text in the image
+        let cvAnalyzeTextResponse = await http.post(
+            process.env.REACT_APP_CV_TEXT_API_ENDPOINT,
             { url: imgBlob },
             apiOptions
         );
-        this.setState({ status: 'UPLOADING' });
-        if (cvAnalyzeResponse.status !== 202) {
-            this.setState({ status: 'ERROR' });
+        let cvAnalyzeTextResults;
+        this.setState({ status: 'ANALYZING TEXT' });
+        if (cvAnalyzeTextResponse.status !== 202) {
+            this.setState({ status: 'ERROR: TEXT ANALYTICS FAILED' });
+            return;
         } else {
             // this is where the Azure CV API returns the URL which needs
             // to be requested to get the results.
             let resultsEndpoint =
-                cvAnalyzeResponse.headers['operation-location'];
+                cvAnalyzeTextResponse.headers['operation-location'];
 
             // try to get results
-            let cvAnalyzeResults;
             for (var i = 0; i < 10; i++) {
                 // try 10 (rate-limited) times
-                cvAnalyzeResults = await http.get(resultsEndpoint, apiOptions);
+                cvAnalyzeTextResults = await http.get(
+                    resultsEndpoint,
+                    apiOptions
+                );
                 // stop querying once initial request has been processed
-                if (cvAnalyzeResults.data.status !== 'running') break;
+                if (cvAnalyzeTextResults.data.status !== 'running') break;
             }
-            if (cvAnalyzeResults.data.status !== 'succeeded') {
-                this.setState({ status: 'ERROR' });
+            if (cvAnalyzeTextResults.data.status !== 'succeeded') {
+                this.setState({ status: 'ERROR: TEXT ANALYTICS FAILED' });
+                return;
             } else {
                 this.setState({
-                    status: 'PROCESSED',
-                    boxes: cvAnalyzeResults.data.analyzeResult.readResults
+                    status: 'TEXT ANALYZED'
                 });
                 console.log(
-                    'boxes:',
-                    cvAnalyzeResults.data.analyzeResult.readResults
+                    'text boxes:',
+                    cvAnalyzeTextResults.data.analyzeResult.readResults
                 );
-                console.log('results: ', cvAnalyzeResults);
+                // console.log('results: ', cvAnalyzeTextResults);
             }
         }
+
+        // now let's analyze any objects in the image
+        let cvAnalyzeObjectsResponse = await http.post(
+            process.env.REACT_APP_CV_OBJ_API_ENDPOINT,
+            { url: imgBlob },
+            {
+                ...apiOptions,
+                params: {
+                    visualFeatures: 'Objects'
+                }
+            }
+        );
+        this.setState({ status: 'ANALYZING OBJECTS' });
+        if (cvAnalyzeObjectsResponse.status === 200) {
+            // console.log('object boxes:', cvAnalyzeObjectsResponse.data.objects);
+            this.setState({ status: 'OBJECTS ANALYZED' });
+        } else {
+            this.setState({ status: 'ERROR: OBJECT ANALYTICS FAILED' });
+            return;
+        }
+        // console.log('cvAnalyzeObjectsResponse:', cvAnalyzeObjectsResponse);
+
+        // now let's transform the two API response structures to look the same
+        let boxes = [
+            ...cvAnalyzeTextResults.data.analyzeResult.readResults[0].lines.map(
+                (line) => {
+                    return {
+                        text: line.text,
+                        x: line.boundingBox[0],
+                        y: line.boundingBox[1],
+                        width: line.boundingBox[4] - line.boundingBox[0],
+                        height: line.boundingBox[5] - line.boundingBox[1]
+                    };
+                }
+            ),
+            ...cvAnalyzeObjectsResponse.data.objects.map((obj) => {
+                return {
+                    text: obj.object,
+                    x: obj.rectangle.x,
+                    y: obj.rectangle.y,
+                    width: obj.rectangle.w,
+                    height: obj.rectangle.h
+                };
+            })
+        ];
+        // console.log('boxes:', boxes);
+        this.setState({ boxes, status: 'BOXES LOADED' });
     }
     uploadImage = (evt) => {
         const imageURL = URL.createObjectURL(evt.target.files[0]);

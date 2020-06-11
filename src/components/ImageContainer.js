@@ -31,25 +31,20 @@ const ImageContainer = (props) => {
     const [height, setHeight] = React.useState(null);
     const imageRef = React.useRef(null);
     React.useEffect(() => {
-        setRectangles(props.boxes[0] ? dataParsing(props.boxes[0].lines) : []);
-        // setRectangles(props.boxes[0] ? props.boxes[0].lines : []);
+        setRectangles(props.boxes.length ? dataParsing(props.boxes) : []);
     }, [props]);
 
-    const dataParsing = (lines) => {
-        const formattedLines = lines.map((line, i) => {
+    const dataParsing = (boxes) => {
+        const formattedBoxes = boxes.map((box, i) => {
             return {
+                ...box,
                 key: { i },
                 id: `${i}`,
-                text: line.text,
                 stroke: 'black',
-                strokeWidth: 1,
-                x: line.boundingBox[0],
-                y: line.boundingBox[1],
-                width: line.boundingBox[4] - line.boundingBox[0],
-                height: line.boundingBox[5] - line.boundingBox[1]
+                strokeWidth: 1
             };
         });
-        return formattedLines;
+        return formattedBoxes;
     };
 
     const getSize = (w, h) => {
