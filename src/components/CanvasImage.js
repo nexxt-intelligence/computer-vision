@@ -21,7 +21,6 @@ export class CanvasImage extends React.Component {
         this.image.src = this.props.src;
         this.image.onload = () => {
             this.props.getSize(this.image.width, this.image.height);
-
             this.handleLoad();
         };
     }

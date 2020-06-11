@@ -134,6 +134,10 @@ class App extends React.Component {
             imgBlob: imageURL
         });
     };
+
+    handleUpdateBoxes = (rect) => {
+        this.setState({ boxes: rect });
+    };
     render() {
         return (
             <div className="App">
@@ -151,6 +155,7 @@ class App extends React.Component {
                         <ImageContainer
                             imageURL={this.state.imgBlob}
                             boxes={this.state.boxes}
+                            handleUpdateBoxes={this.handleUpdateBoxes}
                         />
                     )}
                 </header>

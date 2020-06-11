@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Rect, Text, Group } from 'react-konva';
 import TransformerComponent from './TransformerComponent';
 const BoxArea = ({
@@ -8,6 +8,13 @@ const BoxArea = ({
     onChange,
     selectedShapeName
 }) => {
+    const [text, setText] = React.useState(shapeProps.text);
+
+    React.useEffect(() => {
+        if (text !== shapeProps.text) {
+            setText(shapeProps.text);
+        }
+    }, [shapeProps.text]);
     return (
         <React.Fragment>
             <Group
@@ -19,7 +26,7 @@ const BoxArea = ({
                 height={shapeProps.height}
             >
                 <Text
-                    text={shapeProps.text}
+                    text={text}
                     fontSize={15}
                     name={`${shapeProps.id}-text`}
                     y={-15}
