@@ -30,6 +30,7 @@ class ImageContainer extends React.Component {
         rectangles: initialRectangles,
         selectedShapeName: null,
         selectedShape: null,
+        enableTextEdit: false,
         width: null,
         height: null
     };
@@ -50,7 +51,7 @@ class ImageContainer extends React.Component {
                 ...box,
                 key: { i },
                 id: `${i}`,
-                stroke: 'black',
+                stroke: '#ba102c',
                 strokeWidth: 1
             };
         });
@@ -95,8 +96,8 @@ class ImageContainer extends React.Component {
         } else {
             this.setState({
                 ...this.state,
-                selectedShape: '',
-                selectedShapeName: ''
+                selectedShape: null,
+                selectedShapeName: null
             });
         }
     };
@@ -105,18 +106,18 @@ class ImageContainer extends React.Component {
         selected.text = evt.target.value;
         const updateRect = this.state.rectangles;
         updateRect[selected.id] = selected;
-        console.log(updateRect);
 
         this.props.handleUpdateBoxes(updateRect);
-        // this.setState({
-        //     ...this.state,
-        //     rectangles: updateRect,
-        //     selectedShape: selected
-        // });
+    };
+    onChangeEditStatus = () => (status) => {
+        this.setState({
+            enableTextEdit: status
+        });
     };
 
     handleTextareaKeyDown = (e) => {
-        if (e.keyCode === 13) {
+        // KEYCODE == ENTER || ESC
+        if (e.keyCode === 13 || e.keyCode === 27) {
             this.setState({
                 ...this.state,
                 selectedShapeName: null,
@@ -124,13 +125,15 @@ class ImageContainer extends React.Component {
             });
         }
     };
+
     render() {
         const {
             width,
             height,
             rectangles,
             selectedShape,
-            selectedShapeName
+            selectedShapeName,
+            enableTextEdit
         } = this.state;
         const { imageURL } = this.props;
         return (
@@ -144,6 +147,11 @@ class ImageContainer extends React.Component {
                     <Layer>
                         <CanvasImage src={imageURL} getSize={this.getSize} />
                         {rectangles.map((rect, i) => {
+                            const hide =
+                                selectedShapeName &&
+                                (!selectedShape
+                                    ? false
+                                    : selectedShape.id !== rect.id);
                             return (
                                 <BoxArea
                                     key={i}
@@ -166,13 +174,16 @@ class ImageContainer extends React.Component {
                                         this.setState({
                                             rectangles: rects
                                         });
+                                        this.props.handleUpdateBoxes(rects);
                                     }}
+                                    changeEditStatus={this.onChangeEditStatus()}
+                                    hide={hide}
                                 />
                             );
                         })}
                     </Layer>
                 </Stage>
-                {selectedShape && (
+                {selectedShape && enableTextEdit && (
                     <textarea
                         style={{
                             display: selectedShapeName ? 'block' : 'none',

@@ -1,44 +1,79 @@
 import React, { useEffect } from 'react';
-import { Rect, Text, Group } from 'react-konva';
+import { Rect, Text, Group, Label, Tag } from 'react-konva';
 import TransformerComponent from './TransformerComponent';
 const BoxArea = ({
     shapeProps,
     isSelected,
-    onSelect,
+    hide,
     onChange,
+    changeEditStatus,
     selectedShapeName
 }) => {
+    const groupNode = React.useRef();
     const [text, setText] = React.useState(shapeProps.text);
-
+    const [x, setXCordinate] = React.useState(shapeProps.x);
+    const [y, setYCordinate] = React.useState(shapeProps.y);
     React.useEffect(() => {
         if (text !== shapeProps.text) {
             setText(shapeProps.text);
         }
-    }, [shapeProps.text]);
+        if (x !== shapeProps.x) {
+            setXCordinate(shapeProps.x);
+        }
+        if (y !== shapeProps.y) {
+            setYCordinate(shapeProps.y);
+        }
+    });
+
+    const updateCordinates = () => {
+        const currentNode = groupNode.current && groupNode.current.attrs;
+        const newShape = {
+            ...shapeProps,
+            x: currentNode.x,
+            y: currentNode.y,
+            width: currentNode.width,
+            height: currentNode.height
+        };
+        onChange(newShape);
+    };
     return (
         <React.Fragment>
-            <Group
-                name={shapeProps.id}
-                draggable
-                x={shapeProps.x}
-                y={shapeProps.y}
-                width={shapeProps.width}
-                height={shapeProps.height}
-            >
-                <Text
-                    text={text}
-                    fontSize={15}
-                    name={`${shapeProps.id}-text`}
-                    y={-15}
-                />
-                <Rect
-                    name={`${shapeProps.id}-rect`}
-                    stroke={'black'}
-                    strokeWidth={1}
+            {isSelected && selectedShapeName && (
+                <Label x={x} y={y - 30} width={100}>
+                    <Tag fill={'#ba102c'} />
+                    <Text
+                        text={text || 'Add label here'}
+                        fontSize={20}
+                        fill="white"
+                        name={`${shapeProps.id}-text`}
+                        wrap="word"
+                        padding={5}
+                        onMouseDown={(e) => changeEditStatus(true)}
+                    />
+                </Label>
+            )}
+            {!hide && (
+                <Group
+                    ref={groupNode}
+                    name={shapeProps.id}
+                    draggable
+                    x={x}
+                    y={y}
                     width={shapeProps.width}
                     height={shapeProps.height}
-                />
-            </Group>
+                    onTransformEnd={updateCordinates}
+                    onDragEnd={updateCordinates}
+                >
+                    <Rect
+                        name={`${shapeProps.id}-rect`}
+                        stroke={shapeProps.stroke}
+                        strokeWidth={shapeProps.strokeWidth}
+                        width={shapeProps.width}
+                        height={shapeProps.height}
+                        onMouseDown={(e) => changeEditStatus(false)}
+                    />
+                </Group>
+            )}
             <TransformerComponent selectedShapeName={selectedShapeName} />
         </React.Fragment>
     );

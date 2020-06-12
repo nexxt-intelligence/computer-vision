@@ -138,6 +138,7 @@ class App extends React.Component {
     handleUpdateBoxes = (rect) => {
         this.setState({ boxes: rect });
     };
+
     render() {
         return (
             <div className="App">
@@ -151,6 +152,7 @@ class App extends React.Component {
                         accept="image/*"
                         onChange={(evt) => this.uploadImage(evt)}
                     /> */}
+                    <button>Add new section</button>
                     {this.state.imgBlob && (
                         <ImageContainer
                             imageURL={this.state.imgBlob}
