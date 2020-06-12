@@ -6,51 +6,50 @@ import ImageContainer from './components/ImageContainer';
 
 // axios rate-limited to 1 request every 2 seconds
 let http = rateLimit(axios.create(), { maxRequests: 1, perMilliseconds: 2000 });
-let EXAMPLE_IMAGE_URL =
-    'https://www.canadalife.co.uk/media/3669/equity_release_print-3.jpg';
 
 class App extends React.Component {
     constructor(props) {
         super(props);
         this.state = {
             status: 'WAITING FOR USER UPLOAD',
-            imgBlob: EXAMPLE_IMAGE_URL,
+            imgURL: '',
+            imgType: '',
+            imgData: '',
             boxes: []
         };
     }
 
-    // TODO: instead of using example image on mount,
-    // analysis should happen when user chooses a file from their
-    // computer (or a URL)
-    async componentDidMount() {
-        this.analyzeImage(this.state.imgBlob);
-    }
     componentDidUpdate(prevProps, prevState) {
-        if (prevState.imgBlob !== this.state.imgBlob) {
-            console.log(this.state.imgBlob);
-            this.analyzeImage(this.state.imgBlob);
+        if (prevState.imgURL !== this.state.imgURL) {
+            console.log(this.state.imgURL);
+            this.analyzeImage();
         }
     }
-    async analyzeImage(imgBlob) {
-        let apiOptions = {
-            headers: {
-                'Ocp-Apim-Subscription-Key': process.env.REACT_APP_API_KEY,
-                'Content-Type': 'application/json'
-            }
-        };
+    async analyzeImage() {
+        try {
+            let apiOptions = {
+                headers: {
+                    'Ocp-Apim-Subscription-Key': process.env.REACT_APP_API_KEY,
+                    'Content-Type':
+                        this.state.imgType === 'URL'
+                            ? 'application/json'
+                            : 'application/octet-stream'
+                }
+            };
 
-        // first let's analyze any text in the image
-        let cvAnalyzeTextResponse = await http.post(
-            process.env.REACT_APP_CV_TEXT_API_ENDPOINT,
-            { url: imgBlob },
-            apiOptions
-        );
-        let cvAnalyzeTextResults;
-        this.setState({ status: 'ANALYZING TEXT' });
-        if (cvAnalyzeTextResponse.status !== 202) {
-            this.setState({ status: 'ERROR: TEXT ANALYTICS FAILED' });
-            return;
-        } else {
+            // let's reset the boxes in case this is a new image
+            this.setState({ boxes: [] });
+
+            // first let's analyze any text in the image
+            let cvAnalyzeTextResponse = await http.post(
+                process.env.REACT_APP_CV_TEXT_API_ENDPOINT,
+                this.state.imgType === 'URL'
+                    ? { url: this.state.imgURL }
+                    : this.state.imgData,
+                apiOptions
+            );
+            let cvAnalyzeTextResults;
+            this.setState({ status: 'ANALYZING TEXT' });
             // this is where the Azure CV API returns the URL which needs
             // to be requested to get the results.
             let resultsEndpoint =
@@ -66,73 +65,66 @@ class App extends React.Component {
                 // stop querying once initial request has been processed
                 if (cvAnalyzeTextResults.data.status !== 'running') break;
             }
-            if (cvAnalyzeTextResults.data.status !== 'succeeded') {
-                this.setState({ status: 'ERROR: TEXT ANALYTICS FAILED' });
-                return;
-            } else {
-                this.setState({
-                    status: 'TEXT ANALYZED'
-                });
-                console.log(
-                    'text boxes:',
-                    cvAnalyzeTextResults.data.analyzeResult.readResults
-                );
-                // console.log('results: ', cvAnalyzeTextResults);
-            }
-        }
+            this.setState({ status: 'TEXT ANALYZED' });
+            console.log(
+                'text boxes:',
+                cvAnalyzeTextResults.data.analyzeResult.readResults
+            );
+            // console.log('results: ', cvAnalyzeTextResults);
 
-        // now let's analyze any objects in the image
-        let cvAnalyzeObjectsResponse = await http.post(
-            process.env.REACT_APP_CV_OBJ_API_ENDPOINT,
-            { url: imgBlob },
-            {
-                ...apiOptions,
-                params: {
-                    visualFeatures: 'Objects'
+            // now let's analyze any objects in the image
+            this.setState({ status: 'ANALYZING OBJECTS' });
+            let cvAnalyzeObjectsResponse = await http.post(
+                process.env.REACT_APP_CV_OBJ_API_ENDPOINT,
+                this.state.imgType === 'URL'
+                    ? { url: this.state.imgURL }
+                    : this.state.imgData,
+                {
+                    ...apiOptions,
+                    params: {
+                        visualFeatures: 'Objects'
+                    }
                 }
-            }
-        );
-        this.setState({ status: 'ANALYZING OBJECTS' });
-        if (cvAnalyzeObjectsResponse.status === 200) {
-            // console.log('object boxes:', cvAnalyzeObjectsResponse.data.objects);
+            );
             this.setState({ status: 'OBJECTS ANALYZED' });
-        } else {
-            this.setState({ status: 'ERROR: OBJECT ANALYTICS FAILED' });
-            return;
-        }
-        // console.log('cvAnalyzeObjectsResponse:', cvAnalyzeObjectsResponse);
+            // console.log('cvAnalyzeObjectsResponse:', cvAnalyzeObjectsResponse);
 
-        // now let's transform the two API response structures to look the same
-        let boxes = [
-            ...cvAnalyzeTextResults.data.analyzeResult.readResults[0].lines.map(
-                (line) => {
+            // now let's transform the two API response structures to look the same
+            let boxes = [
+                ...cvAnalyzeTextResults.data.analyzeResult.readResults[0].lines.map(
+                    (line) => {
+                        return {
+                            text: line.text,
+                            x: line.boundingBox[0],
+                            y: line.boundingBox[1],
+                            width: line.boundingBox[4] - line.boundingBox[0],
+                            height: line.boundingBox[5] - line.boundingBox[1]
+                        };
+                    }
+                ),
+                ...cvAnalyzeObjectsResponse.data.objects.map((obj) => {
                     return {
-                        text: line.text,
-                        x: line.boundingBox[0],
-                        y: line.boundingBox[1],
-                        width: line.boundingBox[4] - line.boundingBox[0],
-                        height: line.boundingBox[5] - line.boundingBox[1]
+                        text: obj.object,
+                        x: obj.rectangle.x,
+                        y: obj.rectangle.y,
+                        width: obj.rectangle.w,
+                        height: obj.rectangle.h
                     };
-                }
-            ),
-            ...cvAnalyzeObjectsResponse.data.objects.map((obj) => {
-                return {
-                    text: obj.object,
-                    x: obj.rectangle.x,
-                    y: obj.rectangle.y,
-                    width: obj.rectangle.w,
-                    height: obj.rectangle.h
-                };
-            })
-        ];
-        // console.log('boxes:', boxes);
-        this.setState({ boxes, status: 'BOXES LOADED' });
+                })
+            ];
+            // console.log('boxes:', boxes);
+            this.setState({ boxes, status: 'BOXES LOADED' });
+        } catch (e) {
+            this.setState({ status: 'ERROR: IMAGE ANALYSIS FAILED' });
+        }
     }
     uploadImage = (evt) => {
-        const imageURL = URL.createObjectURL(evt.target.files[0]);
-        this.setState({
-            imgBlob: imageURL
-        });
+        const imgData = evt.target.files[0];
+        const imgURL = URL.createObjectURL(imgData);
+        this.setState({ imgURL, imgData, imgType: 'BLOB' });
+    };
+    handleURLChange = (event) => {
+        this.setState({ imgURL: event.target.value, imgType: 'URL' });
     };
 
     handleUpdateBoxes = (rect) => {
@@ -155,21 +147,29 @@ class App extends React.Component {
             <div className="App">
                 <header className="App-header">
                     <p>{this.state.status}</p>
-                    {/* 
-                      @Disabled for now. Blob issue on API request using uploaded image.
-                      <input
+                    <input
                         type="file"
                         name="img"
                         accept="image/*"
                         onChange={(evt) => this.uploadImage(evt)}
-                    /> */}
-                    <button onClick={this.addNewBox}>Add new section</button>
-                    {this.state.imgBlob && (
-                        <ImageContainer
-                            imageURL={this.state.imgBlob}
-                            boxes={this.state.boxes}
-                            handleUpdateBoxes={this.handleUpdateBoxes}
-                        />
+                    />
+                    <input
+                        type="text"
+                        value={this.state.imgURL}
+                        onChange={this.handleURLChange}
+                        placeholder="Enter any image URL"
+                    />
+                    {this.state.imgURL && (
+                        <>
+                            <ImageContainer
+                                imageURL={this.state.imgURL}
+                                boxes={this.state.boxes}
+                                handleUpdateBoxes={this.handleUpdateBoxes}
+                            />
+                            <button onClick={this.addNewBox}>
+                                Add new section
+                            </button>
+                        </>
                     )}
                 </header>
             </div>
