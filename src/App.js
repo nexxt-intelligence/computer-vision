@@ -27,6 +27,7 @@ class App extends React.Component {
     }
     async analyzeImage() {
         try {
+            let MIN_CONFIDENCE = 0.75;
             let apiOptions = {
                 headers: {
                     'Ocp-Apim-Subscription-Key': process.env.REACT_APP_API_KEY,
@@ -48,7 +49,6 @@ class App extends React.Component {
                     : this.state.imgData,
                 apiOptions
             );
-            let cvAnalyzeTextResults;
             this.setState({ status: 'ANALYZING TEXT' });
             // this is where the Azure CV API returns the URL which needs
             // to be requested to get the results.
@@ -56,6 +56,7 @@ class App extends React.Component {
                 cvAnalyzeTextResponse.headers['operation-location'];
 
             // try to get results
+            let cvAnalyzeTextResults;
             for (var i = 0; i < 10; i++) {
                 // try 10 (rate-limited) times
                 cvAnalyzeTextResults = await http.get(
@@ -65,12 +66,13 @@ class App extends React.Component {
                 // stop querying once initial request has been processed
                 if (cvAnalyzeTextResults.data.status !== 'running') break;
             }
-            this.setState({ status: 'TEXT ANALYZED' });
-            console.log(
-                'text boxes:',
-                cvAnalyzeTextResults.data.analyzeResult.readResults
+            let textBoxes = cvAnalyzeTextResults.data.analyzeResult.readResults[0].lines.filter(
+                (line) =>
+                    line.words.every(
+                        (word) => word.confidence >= MIN_CONFIDENCE
+                    )
             );
-            // console.log('results: ', cvAnalyzeTextResults);
+            this.setState({ status: 'TEXT ANALYZED' });
 
             // now let's analyze any objects in the image
             this.setState({ status: 'ANALYZING OBJECTS' });
@@ -86,23 +88,23 @@ class App extends React.Component {
                     }
                 }
             );
+            let objectBoxes = cvAnalyzeObjectsResponse.data.objects.filter(
+                (obj) => obj.confidence >= MIN_CONFIDENCE
+            );
             this.setState({ status: 'OBJECTS ANALYZED' });
-            // console.log('cvAnalyzeObjectsResponse:', cvAnalyzeObjectsResponse);
 
             // now let's transform the two API response structures to look the same
             let boxes = [
-                ...cvAnalyzeTextResults.data.analyzeResult.readResults[0].lines.map(
-                    (line) => {
-                        return {
-                            text: line.text,
-                            x: line.boundingBox[0],
-                            y: line.boundingBox[1],
-                            width: line.boundingBox[4] - line.boundingBox[0],
-                            height: line.boundingBox[5] - line.boundingBox[1]
-                        };
-                    }
-                ),
-                ...cvAnalyzeObjectsResponse.data.objects.map((obj) => {
+                ...textBoxes.map((line) => {
+                    return {
+                        text: line.text,
+                        x: line.boundingBox[0],
+                        y: line.boundingBox[1],
+                        width: line.boundingBox[4] - line.boundingBox[0],
+                        height: line.boundingBox[5] - line.boundingBox[1]
+                    };
+                }),
+                ...objectBoxes.map((obj) => {
                     return {
                         text: obj.object,
                         x: obj.rectangle.x,
