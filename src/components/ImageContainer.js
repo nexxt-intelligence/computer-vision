@@ -143,6 +143,11 @@ class ImageContainer extends React.Component {
                     height={height}
                     onMouseDown={this.handleStageMouseDown}
                     onTouchStart={this.handleStageMouseDown}
+                    style={{
+                        opacity: `${
+                            selectedShape && enableTextEdit ? '.8' : '1'
+                        }`
+                    }}
                 >
                     <Layer>
                         <CanvasImage src={imageURL} getSize={this.getSize} />
@@ -185,12 +190,14 @@ class ImageContainer extends React.Component {
                 </Stage>
                 {selectedShape && enableTextEdit && (
                     <textarea
+                        className="edit-area"
                         style={{
                             display: selectedShapeName ? 'block' : 'none',
                             position: 'absolute',
                             top: selectedShape.y + 'px',
                             left: selectedShape.x + 'px'
                         }}
+                        r
                         value={selectedShape.text}
                         onChange={(e) => this.handleText(e)}
                         onKeyDown={(e) => this.handleTextareaKeyDown(e)}

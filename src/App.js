@@ -147,33 +147,50 @@ class App extends React.Component {
     render() {
         return (
             <div className="App">
-                <header className="App-header">
-                    <p>{this.state.status}</p>
-                    <input
-                        type="file"
-                        name="img"
-                        accept="image/*"
-                        onChange={(evt) => this.uploadImage(evt)}
-                    />
-                    <input
-                        type="text"
-                        value={this.state.imgURL}
-                        onChange={this.handleURLChange}
-                        placeholder="Enter any image URL"
-                    />
-                    {this.state.imgURL && (
-                        <>
-                            <ImageContainer
-                                imageURL={this.state.imgURL}
-                                boxes={this.state.boxes}
-                                handleUpdateBoxes={this.handleUpdateBoxes}
-                            />
-                            <button onClick={this.addNewBox}>
+                <p className="App--title">{this.state.status}</p>
+                <div className="image--uploader">
+                    <div className="image--uploader-button">
+                        <span>Choose file</span>
+                        <input
+                            type="file"
+                            className="image--uploader--file"
+                            name="img"
+                            accept="image/*"
+                            onChange={(evt) => this.uploadImage(evt)}
+                        />
+                    </div>
+                    <div className="image--uploader--path-wrapper">
+                        <input
+                            type="text"
+                            className="image--uploader--path"
+                            value={this.state.imgURL}
+                            onChange={this.handleURLChange}
+                            placeholder="Or enter any image URL"
+                        />
+                    </div>
+                </div>
+                {this.state.imgURL && (
+                    <>
+                        <div className="button-wrapper">
+                            <button
+                                className="add-box"
+                                onClick={this.addNewBox}
+                            >
                                 Add new section
                             </button>
-                        </>
-                    )}
-                </header>
+                        </div>
+
+                        <ImageContainer
+                            imageURL={this.state.imgURL}
+                            boxes={this.state.boxes}
+                            handleUpdateBoxes={this.handleUpdateBoxes}
+                        />
+                    </>
+                )}
+                <div className="info">
+                    <p>Powered by </p>
+                    <a href="https://nexxt.in/">Nexxt Intelligence</a>
+                </div>
             </div>
         );
     }
