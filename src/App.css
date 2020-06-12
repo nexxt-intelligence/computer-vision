@@ -1,33 +1,131 @@
 .App {
     text-align: center;
-}
-
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
-}
-
-.App-header {
     background-color: #282c34;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
+    /* display: flex;
+    flex-direction: column; */
     align-items: center;
     justify-content: center;
     font-size: calc(10px + 2vmin);
     color: white;
+    min-height: 100vh;
 }
 
-.App-link {
-    color: #61dafb;
+.App--title {
+    margin: 0;
+    padding: 30px 0;
+}
+
+.image--uploader {
+    position: relative;
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+}
+.image--uploader-button {
+    position: relative;
+    cursor: pointer;
+    color: #fff;
+    background-color: #3a8ea8 !important;
+    margin: 0.375rem;
+    text-transform: uppercase;
+    white-space: normal;
+    border: 0;
+    border-radius: 0.125rem;
+    box-shadow: 0 2px 5px 0 rgba(0, 0, 0, 0.16),
+        0 2px 10px 0 rgba(0, 0, 0, 0.12);
+    padding: 0.84rem 2.14rem;
+    font-size: 0.81rem;
+    display: inline-block;
+    font-weight: 400;
+    text-align: center;
+    vertical-align: middle;
+}
+
+.image--uploader-button input[type='file'] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    opacity: 0;
+}
+
+.image--uploader--path-wrapper {
+    height: 2.5rem;
+    padding-left: 10px;
+    color: white;
+    width: 50%;
+}
+.image--uploader--path-wrapper input[type='text'] {
+    box-sizing: content-box;
+    background-color: transparent;
+    border: 0;
+    border-bottom: 1px solid #ced4da;
+    border-radius: 0;
+    outline: 0;
+    box-shadow: none;
+    width: 100%;
+    height: 36px;
+    color: white;
+}
+
+.button-wrapper {
+    margin: 0 auto;
+    z-index: 99;
+    text-align: right;
+    width: 980px;
+}
+.add-box {
+    color: white;
+    background: #3a8ea8;
+    margin: 10px;
+    border: none;
+    cursor: pointer;
+    text-transform: uppercase;
+    padding: 0.84rem 2.14rem;
+    font-size: 0.81rem;
+    display: inline-block;
+    font-weight: 400;
+}
+
+.add-box:hover {
+    background-color: #3a8ea8;
+    transition: 0.3s;
 }
 
 .image-container {
     position: relative;
+    display: inline-block;
+}
+
+.konvajs-content {
+    margin: 0 auto;
+}
+
+.edit-area {
+    resize: none;
+    width: 300px;
+    overflow: auto;
+}
+.info {
+    display: flex;
+    align-items: baseline;
+    position: fixed;
+    bottom: 0;
+    right: 20px;
+    font-size: 15px;
+    font-weight: bold;
+    justify-content: flex-end;
+    margin: 0 20px;
+}
+
+.info > a {
+    margin: 0 5px;
+    color: #ececec;
+    text-decoration: none;
+    font-style: italic;
 }
